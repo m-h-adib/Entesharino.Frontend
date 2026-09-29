@@ -79,6 +79,11 @@ export default function UsersPage() {
   }, [canView, load]);
 
   useEffect(() => {
+    if (!canManage) {
+      setRoles([]);
+      return;
+    }
+
     api.get<{ data: Role[] }>("/api/roles")
       .then((r) => setRoles((r.data || []).filter((x) => x.isActive)))
       .catch(() => setRoles([]));
@@ -280,10 +285,10 @@ export default function UsersPage() {
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex flex-wrap justify-end gap-1">
-                      {canManage && <button onClick={() => openEdit(user)} className="rounded-lg px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">ویرایش</button>
-                      </button>}\n                      {canManage && <button onClick={() => openRole(user)} className="rounded-lg px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">نقش</button>
-                      </button>}\n                      {canManage && <button onClick={() => openPassword(user)} className="rounded-lg px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">رمز</button>
-                      </button>}\n                      {canManage && <button onClick={() => remove(user)} className="rounded-lg px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50">حذف</button>
+                      {canManage && <button onClick={() => openEdit(user)} className="rounded-lg px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">ویرایش</button>}
+                      {canManage && <button onClick={() => openRole(user)} className="rounded-lg px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">نقش</button>}
+                      {canManage && <button onClick={() => openPassword(user)} className="rounded-lg px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">رمز</button>}
+                      {canManage && <button onClick={() => remove(user)} className="rounded-lg px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50">حذف</button>}
                     </div>
                   </td>
                 </tr>
