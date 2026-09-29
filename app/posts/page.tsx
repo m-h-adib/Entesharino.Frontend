@@ -193,8 +193,11 @@ export default function PostsPage() {
 
   function submitSearch(e: FormEvent) {
     e.preventDefault();
-    setPage(1);
-    void load();
+    if (page === 1) {
+      void load();
+    } else {
+      setPage(1);
+    }
   }
 
   function closeModal() {
