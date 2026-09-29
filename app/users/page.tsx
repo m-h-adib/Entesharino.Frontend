@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
+import { auth } from "@/lib/auth";
 
 type User = {
   id: number;
@@ -51,6 +52,8 @@ export default function UsersPage() {
   const [form, setForm] = useState(blank);
   const [password, setPassword] = useState("");
   const [roleId, setRoleId] = useState("");
+  const canView = auth.hasPermission("Users.View");
+  const canManage = auth.hasPermission("Users.Manage");
   const pageSize = 10;
   const pages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -73,13 +76,13 @@ export default function UsersPage() {
   useEffect(() => {
     const timer = window.setTimeout(load, 300);
     return () => window.clearTimeout(timer);
-  }, [load]);
+  }, [canView, load]);
 
   useEffect(() => {
     api.get<{ data: Role[] }>("/api/roles")
       .then((r) => setRoles((r.data || []).filter((x) => x.isActive)))
       .catch(() => setRoles([]));
-  }, []);
+  }, [canManage]);
 
   function close() {
     setModal(null);
@@ -210,7 +213,7 @@ export default function UsersPage() {
           <h1 className="text-2xl font-black text-slate-900">کاربران</h1>
           <p className="mt-1 text-sm text-slate-500">مدیریت کاربران، وضعیت دسترسی و نقش‌ها</p>
         </div>
-        <button onClick={openCreate} className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800">
+        {canManage && <button onClick={openCreate} className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800">
           + کاربر جدید
         </button>
       </div>
@@ -271,16 +274,16 @@ export default function UsersPage() {
                   </td>
                   <td className="px-5 py-4 text-sm text-slate-500">{dateText(user.lastLoginAt)}</td>
                   <td className="px-5 py-4">
-                    <button onClick={() => toggle(user)} className={user.isActive ? "rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700" : "rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500"}>
+                    {canManage && <button onClick={() => toggle(user)} className={user.isActive ? "rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700" : "rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500"}>
                       {user.isActive ? "فعال" : "غیرفعال"}
                     </button>
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex flex-wrap justify-end gap-1">
-                      <button onClick={() => openEdit(user)} className="rounded-lg px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">ویرایش</button>
-                      <button onClick={() => openRole(user)} className="rounded-lg px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">نقش</button>
-                      <button onClick={() => openPassword(user)} className="rounded-lg px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">رمز</button>
-                      <button onClick={() => remove(user)} className="rounded-lg px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50">حذف</button>
+                      {canManage && <button onClick={() => openEdit(user)} className="rounded-lg px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">ویرایش</button>
+                      </button>}\n                      {canManage && <button onClick={() => openRole(user)} className="rounded-lg px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">نقش</button>
+                      </button>}\n                      {canManage && <button onClick={() => openPassword(user)} className="rounded-lg px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100">رمز</button>
+                      </button>}\n                      {canManage && <button onClick={() => remove(user)} className="rounded-lg px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50">حذف</button>
                     </div>
                   </td>
                 </tr>
