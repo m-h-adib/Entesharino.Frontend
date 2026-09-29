@@ -176,7 +176,7 @@ export default function PostsPage() {
   async function loadChannels() {
     try {
       const response = await api.get<ListResponse<Channel>>("/api/channels?page=1&pageSize=100");
-      setChannels((response.data || []).filter((x) => x.isActive && !x.isConnected ? true : x.isActive));
+      setChannels((response.data || []).filter((x) => x.isActive && x.isConnected));
     } catch (e) {
       setError(e instanceof Error ? e.message : "خطا در دریافت کانال‌ها");
     }
@@ -272,7 +272,7 @@ export default function PostsPage() {
   async function submitPost(e: FormEvent) {
     e.preventDefault();
     if (!form.channelIds.length) {
-      setError("حداقل یک کانال را انتخاب کنید.");
+      setError("حداقل یک کانال متصل و فعال را انتخاب کنید.");
       return;
     }
 
@@ -551,7 +551,7 @@ export default function PostsPage() {
                   <Field label="عنوان پست" value={form.title} onChange={(value) => setForm({ ...form, title: value })} required />
                   <label className="block">
                     <span className="mb-2 block text-sm font-bold text-slate-700">متن پست</span>
-                    <textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={7} required className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm leading-7 outline-none focus:border-slate-400" />
+                    <textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={7} className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm leading-7 outline-none focus:border-slate-400" />
                   </label>
 
                   <div>
