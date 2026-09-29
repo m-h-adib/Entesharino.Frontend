@@ -75,7 +75,7 @@ function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose: () => 
           </Link>;
         })}</div>
         <div className="my-6 h-px bg-slate-100"/><div className="mb-3 px-3 text-[11px] font-bold text-slate-400">سیستم</div>
-        <Link href="/settings" onClick={onClose} className="flex items-center gap-3 rounded-xl px-3.5 py-3 text-[13px] font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-950"><span className="text-slate-400"><Icon name="settings"/></span>تنظیمات</Link>
+        <div className="rounded-xl bg-slate-50 px-3.5 py-3 text-[12px] text-slate-400">تنظیمات در نسخه بعدی</div>
       </nav>
       <div className="border-t border-slate-100 p-3">
         <div className="mb-2 flex items-center gap-3 rounded-xl bg-slate-50 p-3"><div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-600">ا</div><div className="min-w-0 flex-1"><div className="truncate text-xs font-bold text-slate-800">کاربر سیستم</div><div className="truncate text-[10px] text-slate-400">مدیر سامانه</div></div></div>
