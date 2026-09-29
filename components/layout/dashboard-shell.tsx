@@ -3,18 +3,26 @@
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import { auth } from "@/lib/auth";
 
 type IconName =
   | "dashboard" | "users" | "roles" | "channels" | "posts" | "reports"
   | "settings" | "menu" | "close" | "bell" | "search" | "chevron" | "logout";
 
-const navigation = [
-  { href: "/dashboard", label: "داشبورد", icon: "dashboard" as IconName },
-  { href: "/users", label: "کاربران", icon: "users" as IconName },
-  { href: "/roles", label: "نقش‌ها و دسترسی‌ها", icon: "roles" as IconName },
-  { href: "/channels", label: "کانال‌ها", icon: "channels" as IconName },
-  { href: "/posts", label: "پست‌ها", icon: "posts" as IconName },
-  { href: "/reports", label: "گزارش‌ها", icon: "reports" as IconName },
+type NavigationItem = {
+  href: string;
+  label: string;
+  icon: IconName;
+  permission?: string;
+};
+
+const navigation: NavigationItem[] = [
+  { href: "/dashboard", label: "داشبورد", icon: "dashboard" },
+  { href: "/users", label: "کاربران", icon: "users", permission: "Users.View" },
+  { href: "/roles", label: "نقش‌ها و دسترسی‌ها", icon: "roles", permission: "Roles.View" },
+  { href: "/channels", label: "کانال‌ها", icon: "channels", permission: "Channels.View" },
+  { href: "/posts", label: "پست‌ها", icon: "posts", permission: "Posts.View" },
+  { href: "/reports", label: "گزارش‌ها", icon: "reports", permission: "Reports.View" },
 ];
 
 function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
@@ -40,8 +48,13 @@ function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose: () => 
   const pathname = usePathname();
   const router = useRouter();
   const logout = () => { localStorage.removeItem("entesharino_access_token"); router.replace("/login"); };
+
+  const visibleNavigation = navigation.filter(
+    (item) => !item.permission || auth.hasPermission(item.permission),
+  );
+
   return <>
-    {mobileOpen && <button aria-label="بستن منو" className="fixed inset-0 z-40 bg-slate-950/40 lg:hidden" onClick={onClose}/>} 
+    {mobileOpen && <button aria-label="بستن منو" className="fixed inset-0 z-40 bg-slate-950/40 lg:hidden" onClick={onClose}/>}
     <aside className={[
       "fixed inset-y-0 right-0 z-50 flex w-[270px] flex-col border-l border-slate-200 bg-white transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0",
       mobileOpen ? "translate-x-0" : "translate-x-full",
@@ -55,7 +68,7 @@ function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose: () => 
       </div>
       <nav className="flex-1 overflow-y-auto px-3 py-5">
         <div className="mb-3 px-3 text-[11px] font-bold text-slate-400">منوی اصلی</div>
-        <div className="space-y-1">{navigation.map(item => {
+        <div className="space-y-1">{visibleNavigation.map(item => {
           const active = item.href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.href);
           return <Link key={item.href} href={item.href} onClick={onClose} className={["group flex items-center gap-3 rounded-xl px-3.5 py-3 text-[13px] font-medium transition", active ? "bg-slate-950 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"].join(" ")}>
             <span className={active ? "text-white" : "text-slate-400 group-hover:text-slate-700"}><Icon name={item.icon}/></span><span className="flex-1">{item.label}</span>{active && <span className="h-1.5 w-1.5 rounded-full bg-white"/>}
