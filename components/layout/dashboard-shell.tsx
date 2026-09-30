@@ -87,6 +87,11 @@ function Sidebar({ mobileOpen, onClose }: { mobileOpen: boolean; onClose: () => 
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Public pages should keep their own layout; all application pages share the dashboard shell.
+  if (pathname === "/" || pathname === "/login") return <>{children}</>;
+
   return <div className="min-h-screen bg-slate-50 text-slate-900 lg:flex">
     <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)}/>
     <div className="min-w-0 flex-1">
