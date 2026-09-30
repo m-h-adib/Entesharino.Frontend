@@ -127,6 +127,7 @@ export default function PostsPage() {
   const [totalCount, setTotalCount] = useState(0);
 
   const [modal, setModal] = useState<"create" | "edit" | "schedule" | "details" | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [form, setForm] = useState({
     title: "",
     content: "",
@@ -203,6 +204,7 @@ export default function PostsPage() {
   function closeModal() {
     setModal(null);
     setSelected(null);
+    setSelectedFile(null);
     setForm({
       title: "",
       content: "",
@@ -216,6 +218,7 @@ export default function PostsPage() {
 
   function openCreate() {
     setSelected(null);
+    setSelectedFile(null);
     setForm({
       title: "",
       content: "",
@@ -272,6 +275,32 @@ export default function PostsPage() {
     setModal("schedule");
   }
 
+  async function uploadMediaFile(postId: number, file: File) {
+    const token = auth.getToken();
+    const baseUrl =
+      process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:5000";
+    const data = new FormData();
+    data.append("file", file);
+
+    const response = await fetch(baseUrl + "/api/posts/" + postId + "/media", {
+      method: "POST",
+      headers: token ? { Authorization: "Bearer " + token } : undefined,
+      body: data,
+    });
+
+    const text = await response.text();
+    let body: unknown = null;
+    try { body = text ? JSON.parse(text) : null; } catch {}
+
+    if (!response.ok) {
+      const message =
+        typeof body === "object" && body !== null && "message" in body && typeof body.message === "string"
+          ? body.message
+          : "آپلود فایل انجام نشد.";
+      throw new Error(message);
+    }
+  }
+
   async function submitPost(e: FormEvent) {
     e.preventDefault();
     if (!form.channelIds.length) {
@@ -291,11 +320,18 @@ export default function PostsPage() {
       };
 
       if (modal === "create") {
-        await api.post("/api/posts", body);
-        setNotice("پست با موفقیت ایجاد شد.");
+        const response = await api.post<ItemResponse<Post>>("/api/posts", body);
+        const createdPost = response.data;
+        if (selectedFile && createdPost?.id) {
+          await uploadMediaFile(createdPost.id, selectedFile);
+        }
+        setNotice(selectedFile ? "پست و فایل با موفقیت ایجاد شدند." : "پست با موفقیت ایجاد شد.");
       } else if (modal === "edit" && selected) {
         await api.put("/api/posts/" + selected.id, body);
-        setNotice("پست با موفقیت به‌روزرسانی شد.");
+        if (selectedFile) {
+          await uploadMediaFile(selected.id, selectedFile);
+        }
+        setNotice(selectedFile ? "پست و فایل با موفقیت به‌روزرسانی شدند." : "پست با موفقیت به‌روزرسانی شد.");
       }
 
       closeModal();
@@ -556,6 +592,19 @@ export default function PostsPage() {
                     <span className="mb-2 block text-sm font-bold text-slate-700">متن پست</span>
                     <textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={7} className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm leading-7 outline-none focus:border-slate-400" />
                   </label>
+
+                  <div>
+                    <span className="mb-2 block text-sm font-bold text-slate-700">فایل پست</span>
+                    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 hover:bg-slate-100">
+                      <span className="min-w-0">
+                        <span className="block text-sm font-bold text-slate-700">{selectedFile ? selectedFile.name : "انتخاب تصویر یا فایل"}</span>
+                        <span className="mt-1 block text-xs text-slate-400">{selectedFile ? formatBytes(selectedFile.size) : "می‌توانید پست را همراه فایل منتشر کنید."}</span>
+                      </span>
+                      <span className="shrink-0 rounded-lg bg-slate-900 px-4 py-2 text-xs font-bold text-white">انتخاب فایل</span>
+                      <input type="file" className="hidden" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} />
+                    </label>
+                    {selectedFile && <button type="button" onClick={() => setSelectedFile(null)} className="mt-2 text-xs font-bold text-red-600 hover:underline">حذف فایل انتخاب‌شده</button>}
+                  </div>
 
                   <div>
                     <div className="mb-2 text-sm font-bold text-slate-700">کانال‌های انتشار</div>
