@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import DashboardShell from "@/components/layout/dashboard-shell";
 
 export const metadata: Metadata = {
   title: "انتشارینو",
@@ -11,7 +12,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="fa" dir="rtl">
-      <body>{children}</body>
+      <body><DashboardShell>{children}</DashboardShell></body>
     </html>
   );
 }
