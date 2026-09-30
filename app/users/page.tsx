@@ -218,9 +218,14 @@ export default function UsersPage() {
           <h1 className="text-2xl font-black text-slate-900">کاربران</h1>
           <p className="mt-1 text-sm text-slate-500">مدیریت کاربران، وضعیت دسترسی و نقش‌ها</p>
         </div>
-        {canManage && <button onClick={openCreate} className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800">
-          + کاربر جدید
-        </button>
+  {canManage && (
+  <button
+    onClick={openCreate}
+    className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800"
+  >
+    + کاربر جدید
+  </button>
+)}
       </div>
 
       {(error || notice) && (
@@ -279,9 +284,18 @@ export default function UsersPage() {
                   </td>
                   <td className="px-5 py-4 text-sm text-slate-500">{dateText(user.lastLoginAt)}</td>
                   <td className="px-5 py-4">
-                    {canManage && <button onClick={() => toggle(user)} className={user.isActive ? "rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700" : "rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500"}>
-                      {user.isActive ? "فعال" : "غیرفعال"}
-                    </button>
+                  {canManage && (
+  <button
+    onClick={() => toggle(user)}
+    className={
+      user.isActive
+        ? "rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700"
+        : "rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500"
+    }
+  >
+    {user.isActive ? "فعال" : "غیرفعال"}
+  </button>
+)}
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex flex-wrap justify-end gap-1">
