@@ -378,6 +378,34 @@ export default function PostsPage() {
     }
   }
 
+  async function republish(post: Post) {
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await api.post<ItemResponse<PostDetails>>(
+        "/api/posts/" + post.id + "/republish"
+      );
+
+      const copy = response.data;
+      setSelected(copy);
+      setForm({
+        title: copy.title,
+        content: copy.content || "",
+        channelIds: copy.channels.map((x) => x.channelId),
+        scheduleType: 2,
+        scheduledAt: "",
+        cronExpression: "",
+        timeZone: "UTC",
+      });
+      setModal("edit");
+      setNotice("یک نسخه جدید از پست ایجاد شد. می‌توانید آن را ویرایش، منتشر یا زمان‌بندی کنید.");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "بازنشر پست انجام نشد.");
+    }
+  }
+
   async function publish(post: Post) {
     if (!window.confirm("پست «" + post.title + "» به کانال‌های انتخاب‌شده ارسال شود؟")) return;
     setPublishingId(post.id);
@@ -557,8 +585,17 @@ export default function PostsPage() {
                     <td className="px-5 py-4">
                       {canManage && (
                         <div className="flex flex-wrap justify-end gap-1">
-                          <button onClick={() => publish(post)} disabled={publishingId === post.id || post.status === 3 || post.status === 4} className="rounded-lg px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 disabled:opacity-40">{publishingId === post.id ? "در حال ارسال..." : "انتشار"}</button>
-                          <button onClick={() => openSchedule(post)} disabled={post.status === 3 || post.status === 4} className="rounded-lg px-3 py-2 text-xs font-bold text-violet-700 hover:bg-violet-50 disabled:opacity-40">زمان‌بندی</button>
+                          {canCreate && (
+                            <button onClick={() => void republish(post)} className="rounded-lg px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50">بازنشر</button>
+                          )}
+                          {canManage && (
+                            <>
+                              <button onClick={() => publish(post)} disabled={publishingId === post.id || post.status === 3 || post.status === 4} className="rounded-lg px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 disabled:opacity-40">{publishingId === post.id ? "در حال ارسال..." : "انتشار"}</button>
+                              <button onClick={() => openSchedule(post)} disabled={post.status === 3 || post.status === 4} className="rounded-lg px-3 py-2 text-xs font-bold text-violet-700 hover:bg-violet-50 disabled:opacity-40">زمان‌بندی</button>
+                              <button onClick={() => openEdit(post)} disabled={post.status === 3 || post.status === 4} className="rounded-lg px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-40">ویرایش</button>
+                              <button onClick={() => remove(post)} disabled={deletingId === post.id || post.status === 3} className="rounded-lg px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-40">{deletingId === post.id ? "..." : "حذف"}</button>
+                            </>
+                          )}
                           <button onClick={() => openEdit(post)} disabled={post.status === 3 || post.status === 4} className="rounded-lg px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-40">ویرایش</button>
                           <button onClick={() => remove(post)} disabled={deletingId === post.id || post.status === 3} className="rounded-lg px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-40">{deletingId === post.id ? "..." : "حذف"}</button>
                         </div>
