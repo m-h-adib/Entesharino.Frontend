@@ -31,7 +31,7 @@ type ItemResponse<T> = {
   message?: string;
 };
 
-type ModalType = "create" | "edit" | "connection" | null;
+type ModalType = "create" | "edit" | "connection" | "access" | null;
 
 const platforms: { value: Platform; label: string; short: string }[] = [
   { value: 1, label: "تلگرام", short: "TG" },
@@ -79,6 +79,9 @@ export default function ChannelsPage() {
   const [testingId, setTestingId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [accessUsers, setAccessUsers] = useState<{ userId: number; fullName: string; username: string; isOwner: boolean; hasAccess: boolean }[]>([]);
+  const [accessChannel, setAccessChannel] = useState<Channel | null>(null);
+  const [accessSaving, setAccessSaving] = useState(false);
 
   const canView = auth.hasPermission("Channels.View");
   const canManage = auth.hasPermission("Channels.Manage");
@@ -126,6 +129,8 @@ export default function ChannelsPage() {
     setModal(null);
     setSelected(null);
     setForm(emptyForm);
+    setAccessChannel(null);
+    setAccessUsers([]);
   }
 
   function openCreate() {
@@ -158,6 +163,43 @@ export default function ChannelsPage() {
       tokenExpiresAt: "",
     });
     setModal("connection");
+  }
+
+  async function openAccess(channel: Channel) {
+    setSelected(channel);
+    setAccessChannel(channel);
+    setAccessUsers([]);
+    setError("");
+    setNotice("");
+    setModal("access");
+
+    try {
+      const response = await api.get<ListResponse<{ userId: number; fullName: string; username: string; isOwner: boolean; hasAccess: boolean }>>(
+        "/api/channels/" + channel.id + "/users",
+      );
+      setAccessUsers(response.data || []);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "دریافت کاربران کانال انجام نشد.");
+    }
+  }
+
+  async function saveAccess() {
+    if (!accessChannel) return;
+    setAccessSaving(true);
+    setError("");
+    setNotice("");
+
+    try {
+      await api.put("/api/channels/" + accessChannel.id + "/users", {
+        userIds: accessUsers.filter((x) => x.hasAccess && !x.isOwner).map((x) => x.userId),
+      });
+      setNotice("دسترسی ارسال پست کانال به‌روزرسانی شد.");
+      closeModal();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "ذخیره دسترسی‌ها انجام نشد.");
+    } finally {
+      setAccessSaving(false);
+    }
   }
 
   async function submit(e: FormEvent) {
@@ -450,6 +492,12 @@ export default function ChannelsPage() {
                         {canManage && (
                           <div className="flex flex-wrap justify-end gap-1">
                             <button
+                              onClick={() => void openAccess(channel)}
+                              className="rounded-lg px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50"
+                            >
+                              دسترسی ارسال
+                            </button>
+                            <button
                               onClick={() => testConnection(channel)}
                               disabled={testingId === channel.id}
                               className="rounded-lg px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
@@ -512,7 +560,37 @@ export default function ChannelsPage() {
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
           <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
-            <form onSubmit={submit}>
+            {modal === "access" && accessChannel && (
+              <div>
+                <ModalHeader title={"دسترسی ارسال پست «" + accessChannel.name + "»"} close={closeModal} />
+                <div className="max-h-[70vh] overflow-y-auto p-6">
+                  <p className="mb-4 text-sm leading-7 text-slate-500">
+                    فقط کاربرانی که انتخاب می‌شوند می‌توانند این کانال را برای ارسال پست انتخاب کنند. مالک کانال همیشه دسترسی دارد.
+                  </p>
+                  <div className="space-y-2">
+                    {accessUsers.length === 0 ? (
+                      <div className="rounded-xl bg-slate-50 p-5 text-center text-sm text-slate-400">در حال دریافت کاربران...</div>
+                    ) : accessUsers.map((user) => (
+                      <label key={user.userId} className="flex items-center gap-3 rounded-xl border border-slate-100 p-3 hover:bg-slate-50">
+                        <input type="checkbox" checked={user.hasAccess} disabled={user.isOwner}
+                          onChange={() => setAccessUsers((items) => items.map((x) => x.userId === user.userId ? { ...x, hasAccess: !x.hasAccess } : x))}
+                          className="h-4 w-4 accent-slate-900" />
+                        <span className="min-w-0">
+                          <span className="block text-sm font-bold text-slate-700">{user.fullName || user.username}{user.isOwner ? " (مالک)" : ""}</span>
+                          <span className="text-xs text-slate-400">@{user.username}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
+                  <button type="button" onClick={closeModal} className="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-100">انصراف</button>
+                  <button type="button" onClick={() => void saveAccess()} disabled={accessSaving || accessUsers.length === 0} className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50">{accessSaving ? "در حال ذخیره..." : "ذخیره دسترسی‌ها"}</button>
+                </div>
+              </div>
+            )}
+            {modal !== "access" && (
+              <form onSubmit={submit}>
               <ModalHeader
                 title={
                   modal === "create"
@@ -645,6 +723,7 @@ export default function ChannelsPage() {
                 </button>
               </div>
             </form>
+            )}
           </div>
         </div>
       )}
