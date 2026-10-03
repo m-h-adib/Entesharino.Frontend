@@ -657,9 +657,9 @@ export default function PostsPage() {
                       <div className="mb-2 text-sm font-bold text-slate-800">رسانه‌های پست</div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         {selected.media.map((media) => {
-                          const mediaUrl = media.fileUrl.startsWith("http")
-                            ? media.fileUrl
-                            : ((process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:5000") + "/" + media.fileUrl.replace(/^\//, ""));
+                          const mediaUrl =
+                            (process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:5000") +
+                            "/api/posts/media/" + media.id;
                           const isImage = media.mediaType === 1 || /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(media.fileName);
                           return (
                             <div key={media.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -706,9 +706,9 @@ export default function PostsPage() {
                       <div className="mb-2 text-sm font-bold text-slate-800">رسانه‌های فعلی</div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         {selected.media.map((media) => {
-                          const mediaUrl = media.fileUrl.startsWith("http")
-                            ? media.fileUrl
-                            : ((process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:5000") + "/" + media.fileUrl.replace(/^\//, ""));
+                          const mediaUrl =
+                            (process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:5000") +
+                            "/api/posts/media/" + media.id;
                           const isImage = media.mediaType === 1 || /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(media.fileName);
                           return (
                             <div key={media.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
