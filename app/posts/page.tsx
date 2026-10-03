@@ -126,7 +126,7 @@ export default function PostsPage() {
   const pageSize = 20;
   const [totalCount, setTotalCount] = useState(0);
 
-  const [modal, setModal] = useState<"create" | "edit" | "schedule" | "details" | null>(null);
+  const [modal, setModal] = useState<"create" | "edit" | "schedule" | "details" | "republish" | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [form, setForm] = useState({
     title: "",
@@ -378,15 +378,39 @@ export default function PostsPage() {
     }
   }
 
-  async function republish(post: Post) {
+  async function openRepublish(post: Post) {
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await api.get<ItemResponse<PostDetails>>("/api/posts/" + post.id);
+      const details = response.data;
+      setSelected(details);
+      setForm({
+        title: details.title,
+        content: details.content || "",
+        channelIds: details.channels.map((x) => x.channelId),
+        scheduleType: 2,
+        scheduledAt: "",
+        cronExpression: "",
+        timeZone: "UTC",
+      });
+      setModal("republish");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "خطا در دریافت پست برای بازنشر");
+    }
+  }
+
+  async function createRepublishedPost() {
+    if (!selected) return;
+    setSaving(true);
     setError("");
     setNotice("");
 
     try {
       const response = await api.post<ItemResponse<PostDetails>>(
-        "/api/posts/" + post.id + "/republish"
+        "/api/posts/" + selected.id + "/republish"
       );
-
       const copy = response.data;
       setSelected(copy);
       setForm({
@@ -399,10 +423,12 @@ export default function PostsPage() {
         timeZone: "UTC",
       });
       setModal("edit");
-      setNotice("یک نسخه جدید از پست ایجاد شد. می‌توانید آن را ویرایش، منتشر یا زمان‌بندی کنید.");
+      setNotice("نسخه جدید با موفقیت ایجاد شد. اکنون می‌توانید آن را ویرایش، منتشر یا زمان‌بندی کنید.");
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "بازنشر پست انجام نشد.");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -586,7 +612,7 @@ export default function PostsPage() {
                       {canManage && (
                         <div className="flex flex-wrap justify-end gap-1">
                           {canCreate && (
-                            <button onClick={() => void republish(post)} className="rounded-lg px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50">بازنشر</button>
+                            <button onClick={() => void openRepublish(post)} className="rounded-lg px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50">بازنشر</button>
                           )}
                           {canManage && (
                             <>
@@ -596,8 +622,7 @@ export default function PostsPage() {
                               <button onClick={() => remove(post)} disabled={deletingId === post.id || post.status === 3} className="rounded-lg px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-40">{deletingId === post.id ? "..." : "حذف"}</button>
                             </>
                           )}
-                          <button onClick={() => openEdit(post)} disabled={post.status === 3 || post.status === 4} className="rounded-lg px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-40">ویرایش</button>
-                          <button onClick={() => remove(post)} disabled={deletingId === post.id || post.status === 3} className="rounded-lg px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-40">{deletingId === post.id ? "..." : "حذف"}</button>
+
                         </div>
                       )}
                     </td>
@@ -620,6 +645,52 @@ export default function PostsPage() {
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
           <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl">
+            {modal === "republish" && selected && (
+              <div>
+                <ModalHeader title={"بازنشر «" + selected.title + "»"} close={closeModal} />
+                <div className="max-h-[72vh] space-y-5 overflow-y-auto p-6">
+                  <div className="rounded-xl bg-slate-50 p-4 text-sm leading-7 text-slate-700 whitespace-pre-wrap">
+                    {selected.content || "این پست متن ندارد."}
+                  </div>
+                  {selected.media.length > 0 && (
+                    <div>
+                      <div className="mb-2 text-sm font-bold text-slate-800">رسانه‌های پست</div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {selected.media.map((media) => {
+                          const mediaUrl = media.fileUrl.startsWith("http")
+                            ? media.fileUrl
+                            : ((process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:5000") + "/" + media.fileUrl.replace(/^\//, ""));
+                          const isImage = media.mediaType === 1 || /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(media.fileName);
+                          return (
+                            <div key={media.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                              {isImage ? (
+                                <img src={mediaUrl} alt={media.fileName} className="h-48 w-full object-contain bg-slate-50" />
+                              ) : (
+                                <div className="flex h-48 items-center justify-center bg-slate-50 text-sm text-slate-500">فایل: {media.fileName}</div>
+                              )}
+                              <div className="p-3">
+                                <div className="truncate text-sm font-bold text-slate-700">{media.fileName}</div>
+                                <div className="mt-1 text-xs text-slate-400">{formatBytes(media.fileSize)}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm leading-7 text-blue-800">
+                    با زدن «ایجاد نسخه بازنشر» نسخه جدید ساخته می‌شود. با «انصراف» هیچ پست جدیدی ایجاد نخواهد شد.
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
+                  <button type="button" onClick={closeModal} className="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-100">انصراف</button>
+                  <button type="button" onClick={() => void createRepublishedPost()} disabled={saving} className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-50">
+                    {saving ? "در حال ایجاد..." : "ایجاد نسخه بازنشر"}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {(modal === "create" || modal === "edit") && (
               <form onSubmit={submitPost}>
                 <ModalHeader title={modal === "create" ? "افزودن پست" : "ویرایش پست"} close={closeModal} />
@@ -629,6 +700,30 @@ export default function PostsPage() {
                     <span className="mb-2 block text-sm font-bold text-slate-700">متن پست</span>
                     <textarea value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={7} className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm leading-7 outline-none focus:border-slate-400" />
                   </label>
+
+                  {modal === "edit" && selected && selected.media.length > 0 && (
+                    <div>
+                      <div className="mb-2 text-sm font-bold text-slate-800">رسانه‌های فعلی</div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {selected.media.map((media) => {
+                          const mediaUrl = media.fileUrl.startsWith("http")
+                            ? media.fileUrl
+                            : ((process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:5000") + "/" + media.fileUrl.replace(/^\//, ""));
+                          const isImage = media.mediaType === 1 || /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(media.fileName);
+                          return (
+                            <div key={media.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                              {isImage ? (
+                                <img src={mediaUrl} alt={media.fileName} className="h-40 w-full object-contain bg-slate-50" />
+                              ) : (
+                                <div className="flex h-40 items-center justify-center bg-slate-50 text-sm text-slate-500">فایل: {media.fileName}</div>
+                              )}
+                              <div className="p-3 text-xs text-slate-500">{media.fileName}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   <div>
                     <span className="mb-2 block text-sm font-bold text-slate-700">فایل پست</span>
